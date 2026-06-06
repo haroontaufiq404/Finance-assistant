@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import { ArrowUp, Square } from "lucide-react";
-import type { ResultCardData, IngestSummary } from "@/lib/contracts";
+import { ArrowUp, Square, Paperclip } from "lucide-react";
+import type { ResultCardData, IngestSummary, ReceiptDraft } from "@/lib/contracts";
 import { ResultCard } from "./result-card";
 import { ImportSummaryCard } from "./import-summary";
+import { ReceiptDraftCard } from "./receipt-draft-card";
 import { Onboarding } from "./onboarding";
 import { cn } from "@/lib/utils";
 
@@ -25,10 +26,31 @@ export function ChatApp({
   const [input, setInput] = useState("");
   const [hasData, setHasData] = useState(initialHasData);
   const [importSummary, setImportSummary] = useState<IngestSummary | null>(null);
+  const [drafts, setDrafts] = useState<ReceiptDraft[]>([]);
+  const [receiptBusy, setReceiptBusy] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const busy = status === "submitted" || status === "streaming";
-  const showOnboarding = !hasData && messages.length === 0;
+  const showOnboarding = !hasData && messages.length === 0 && drafts.length === 0;
+
+  async function uploadReceipt(file: File) {
+    setReceiptBusy(true);
+    setReceiptError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/receipts", { method: "POST", body: form });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Could not read receipt");
+      setDrafts((d) => [...d, json as ReceiptDraft]);
+    } catch (e) {
+      setReceiptError(e instanceof Error ? e.message : "Could not read receipt");
+    } finally {
+      setReceiptBusy(false);
+    }
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -86,6 +108,21 @@ export function ChatApp({
                   <MessageTurn key={m.id} message={m} />
                 ))}
                 {status === "submitted" && <ToolRunning label="Thinking…" />}
+                {receiptBusy && <ToolRunning label="Reading your receipt…" />}
+                {receiptError && <p className="text-sm text-danger">{receiptError}</p>}
+                {drafts.map((draft) => (
+                  <ReceiptDraftCard
+                    key={draft.receiptId}
+                    draft={draft}
+                    onConfirmed={() => {
+                      setDrafts((ds) => ds.filter((x) => x.receiptId !== draft.receiptId));
+                      setHasData(true);
+                    }}
+                    onDiscard={() =>
+                      setDrafts((ds) => ds.filter((x) => x.receiptId !== draft.receiptId))
+                    }
+                  />
+                ))}
                 <div ref={bottomRef} />
               </div>
             )}
@@ -102,6 +139,27 @@ export function ChatApp({
               }}
               className="flex items-end gap-2 rounded border border-border bg-surface p-2"
             >
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadReceipt(f);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={receiptBusy}
+                className="rounded-sm p-2 text-text-muted hover:text-text disabled:opacity-40"
+                aria-label="Attach receipt"
+                title="Attach a receipt photo"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
