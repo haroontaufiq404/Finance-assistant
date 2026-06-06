@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   "Quiet ledger" tokens (UI_SPEC §2.1). Warm paper base, one evergreen accent,
+   semantic colors reserved for money state only.
+   --------------------------------------------------------------------------- */
+:root {
+  --bg: #fbfaf7; /* warm paper, not stark white */
+  --surface: #ffffff; /* cards */
+  --surface-sunk: #f3f1eb; /* inset / skeleton */
+  --border: #e7e3da; /* hairline */
+  --text: #1c1b19; /* near-black, warm */
+  --text-muted: #6b6860;
+  --text-faint: #9a968c;
+  --accent: #1e5b4f; /* deep evergreen */
+  --accent-soft: #e4efea;
+  --income: #2e6f4e; /* positive money */
+  --spend: #1c1b19; /* spend is plain text, not alarming */
+  --warn: #b5791f; /* budget nearing limit */
+  --danger: #a33a2b; /* over budget / true alerts */
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-display: ui-serif, Georgia, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14130f;
+    --surface: #1c1b17;
+    --surface-sunk: #222018;
+    --border: #322f27;
+    --text: #f2efe6;
+    --text-muted: #a8a498;
+    --text-faint: #76726a;
+    --accent: #5bae97;
+    --accent-soft: #1e2c28;
+    --income: #7cc79e;
+    --warn: #d8a24a;
+    --danger: #d9745f;
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Money: tabular numerals so columns align and digits don't jitter. */
+  .tnum {
+    font-feature-settings: "tnum" 1;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
