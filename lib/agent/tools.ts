@@ -1,8 +1,10 @@
 import "server-only";
-import { tool, generateText, type ToolSet } from "ai";
+import { tool, generateText, generateObject, type ToolSet } from "ai";
+import { z } from "zod";
 import { getServerClient } from "@/lib/db/client";
 import { reasoningModel } from "./models";
-import { SYNTHESIS_SYSTEM } from "./prompts";
+import { SYNTHESIS_SYSTEM, MERCHANT_SYSTEM } from "./prompts";
+import { webSearch } from "@/lib/search/web";
 import * as Q from "@/lib/db/queries";
 import * as C from "@/lib/contracts";
 import { formatCents } from "@/lib/utils";
@@ -161,6 +163,48 @@ export function buildToolSet(ctx: { userId: string; today: string }): ToolSet {
         const supabase = await getServerClient();
         const out = await Q.saveMemory(supabase, userId, input, summarizeRule(input.rule));
         return out; // {ok, summary} — narrated by the model, no card
+      },
+    }),
+
+    lookupMerchant: tool({
+      description:
+        "Look up an unfamiliar merchant or card charge online and summarize what it likely is. Use when the user doesn't recognize a charge. Returns a sourced best guess or an honest 'could not determine'.",
+      inputSchema: C.LookupMerchantInput,
+      execute: async (input) => {
+        const results = await webSearch(
+          `What company is the credit card charge descriptor "${input.merchantName}"? merchant identification`,
+          { topK: 5 },
+        );
+        const miss = {
+          kind: "merchant" as const,
+          couldNotDetermine: true,
+          merchant: null,
+          description: null,
+          sourceUrl: null,
+        };
+        if (results.length === 0) return miss;
+
+        const { object } = await generateObject({
+          model: reasoningModel(),
+          schema: z.object({
+            couldNotDetermine: z.boolean(),
+            merchant: z.string().nullable(),
+            description: z.string().nullable(),
+          }),
+          system: MERCHANT_SYSTEM,
+          prompt: `Charge descriptor: "${input.merchantName}"\n\nSearch results:\n${results
+            .map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.snippet}`)
+            .join("\n\n")}`,
+        });
+
+        if (object.couldNotDetermine || !object.merchant) return miss;
+        return {
+          kind: "merchant" as const,
+          couldNotDetermine: false,
+          merchant: object.merchant,
+          description: object.description ?? "",
+          sourceUrl: results[0]?.url ?? null,
+        };
       },
     }),
 
