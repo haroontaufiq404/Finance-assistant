@@ -1,4 +1,9 @@
 import "server-only";
+import { getServerClient } from "@/lib/db/client";
+import { categorize } from "./categorize";
+import { recomputeRollups } from "./rollups";
+import { detectSubscriptions } from "./subscriptions";
+import { scoreAnomalies } from "./anomalies";
 
 export interface BatchResult {
   rollups: number;
@@ -8,15 +13,23 @@ export interface BatchResult {
 }
 
 /**
- * Single entrypoint the ingest pipeline calls after inserting rows. The real
- * precompute jobs (categorize, rollups, subscriptions, anomalies) are
- * implemented in PRD-A3; until then this is a no-op so ingest works end-to-end.
+ * Single entrypoint the ingest pipeline (A2) and receipt confirm (C1) call
+ * after inserting rows. Runs the precompute jobs synchronously for the demo;
+ * each job is idempotent and scoped to one user (SPEC §7). Production path
+ * (a worker/queue) is described in the README, not built (SPEC §13).
  *
- * TODO(A3): wire the four batch jobs here.
+ * Order matters: categorize first so rollups/anomalies bucket by final category.
  */
 export async function runBatchForUser(
-  _userId: string,
-  _opts?: { affectedMonths?: string[] },
+  userId: string,
+  opts?: { affectedMonths?: string[] },
 ): Promise<BatchResult> {
-  return { rollups: 0, subscriptions: 0, anomalies: 0, categorized: 0 };
+  const supabase = await getServerClient();
+
+  const categorized = await categorize(supabase, userId);
+  const rollups = await recomputeRollups(supabase, userId, opts?.affectedMonths);
+  const subscriptions = await detectSubscriptions(supabase, userId);
+  const anomalies = await scoreAnomalies(supabase, userId);
+
+  return { categorized, rollups, subscriptions, anomalies };
 }
