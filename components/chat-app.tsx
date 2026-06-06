@@ -8,6 +8,13 @@ import { ResultCard } from "./result-card";
 import { ImportSummaryCard } from "./import-summary";
 import { ReceiptDraftCard } from "./receipt-draft-card";
 import { Onboarding } from "./onboarding";
+import { HelpButton } from "./help-button";
+import {
+  MAX_IMAGE_BYTES,
+  ALLOWED_IMAGE_TYPES,
+  MAX_MESSAGE_CHARS,
+  formatBytes,
+} from "@/lib/limits";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,6 +43,14 @@ export function ChatApp({
   const showOnboarding = !hasData && messages.length === 0 && drafts.length === 0;
 
   async function uploadReceipt(file: File) {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setReceiptError("Unsupported image type — use PNG, JPEG, or WebP.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setReceiptError(`That image is too large (max ${formatBytes(MAX_IMAGE_BYTES)}).`);
+      return;
+    }
     setReceiptBusy(true);
     setReceiptError(null);
     try {
@@ -170,6 +185,7 @@ export function ChatApp({
                   }
                 }}
                 rows={1}
+                maxLength={MAX_MESSAGE_CHARS}
                 placeholder="Ask about your money…"
                 className="max-h-32 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-text-faint"
               />
@@ -193,9 +209,16 @@ export function ChatApp({
                 </button>
               )}
             </form>
+            {input.length > MAX_MESSAGE_CHARS * 0.9 && (
+              <div className="mt-1 pr-1 text-right text-xs text-text-faint">
+                {input.length}/{MAX_MESSAGE_CHARS}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      <HelpButton />
     </div>
   );
 }

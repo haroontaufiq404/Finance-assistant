@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/db/client";
 import { ingestCsv } from "@/lib/ingest/pipeline";
+import { MAX_CSV_BYTES, formatBytes } from "@/lib/limits";
 
 export const runtime = "nodejs"; // pipeline uses node:crypto + service code
 
@@ -34,6 +35,13 @@ export async function POST(request: NextRequest) {
 
   if (!csv.trim()) {
     return NextResponse.json({ error: "empty file" }, { status: 400 });
+  }
+
+  if (Buffer.byteLength(csv, "utf8") > MAX_CSV_BYTES) {
+    return NextResponse.json(
+      { error: `CSV exceeds the ${formatBytes(MAX_CSV_BYTES)} limit` },
+      { status: 413 },
+    );
   }
 
   try {
