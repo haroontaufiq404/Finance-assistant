@@ -19,6 +19,14 @@ type TrendOut = z.infer<typeof C.GetTrendOutput>;
 type SubsOut = z.infer<typeof C.GetSubscriptionsOutput>;
 type AnomIn = z.infer<typeof C.GetAnomaliesInput>;
 type AnomOut = z.infer<typeof C.GetAnomaliesOutput>;
+type BudgetStatusOut = z.infer<typeof C.BudgetStatus>;
+type GetBudgetStatusIn = z.infer<typeof C.GetBudgetStatusInput>;
+type GetBudgetStatusOut = z.infer<typeof C.GetBudgetStatusOutput>;
+type SetBudgetIn = z.infer<typeof C.SetBudgetInput>;
+type SaveMemoryIn = z.infer<typeof C.SaveMemoryInput>;
+type SaveMemoryOut = z.infer<typeof C.SaveMemoryOutput>;
+
+type Exclusion = { category: string; from: string };
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
@@ -218,6 +226,135 @@ export async function getAnomalies(
       txn: null,
     })),
   };
+}
+
+// ---- budgets (PRD-B3): read-time evaluation with exclusion rules ----------
+
+/** Latest month with rollup data, so budgets track the most recent data month
+ *  even when the sample data is historical. Falls back to the real month. */
+async function latestDataMonth(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<string> {
+  const { data } = await supabase
+    .from("rollups")
+    .select("period_start")
+    .eq("user_id", userId)
+    .eq("period_type", "month")
+    .order("period_start", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const row = data as { period_start: string } | null;
+  if (row?.period_start) return row.period_start;
+  const now = new Date();
+  return `${now.getUTCFullYear()}-${pad2(now.getUTCMonth() + 1)}-01`;
+}
+
+async function monthSpend(
+  supabase: SupabaseClient,
+  userId: string,
+  month: string,
+  category: string,
+): Promise<number> {
+  const { data } = await supabase
+    .from("rollups")
+    .select("total_spend_cents")
+    .eq("user_id", userId)
+    .eq("period_type", "month")
+    .eq("period_start", month)
+    .eq("category", category)
+    .maybeSingle();
+  return (data as { total_spend_cents: number } | null)?.total_spend_cents ?? 0;
+}
+
+async function statusFor(
+  supabase: SupabaseClient,
+  userId: string,
+  budget: { category: string; limit_cents: number },
+  exclusions: Exclusion[],
+  month: string,
+): Promise<BudgetStatusOut> {
+  const base = await monthSpend(supabase, userId, month, budget.category);
+  const applicable = exclusions.filter((e) => e.from === budget.category);
+  let excluded = 0;
+  for (const e of applicable) {
+    excluded += await monthSpend(supabase, userId, month, e.category);
+  }
+  const spent = Math.max(0, base - excluded);
+  const pct = budget.limit_cents > 0
+    ? Number(((spent / budget.limit_cents) * 100).toFixed(1))
+    : 0;
+  return {
+    category: budget.category,
+    limit_cents: budget.limit_cents,
+    spent_cents: spent,
+    pct_used: pct,
+    remaining_cents: budget.limit_cents - spent,
+    exclusionsApplied: applicable.map((e) => e.category),
+  };
+}
+
+export async function getBudgetStatus(
+  supabase: SupabaseClient,
+  userId: string,
+  input: GetBudgetStatusIn,
+  exclusions: Exclusion[],
+): Promise<GetBudgetStatusOut> {
+  const month = await latestDataMonth(supabase, userId);
+  let query = supabase
+    .from("budgets")
+    .select("category, limit_cents")
+    .eq("user_id", userId)
+    .eq("period_type", "month");
+  if (input.category) query = query.eq("category", input.category);
+
+  const { data, error } = await query;
+  if (error) throw new Error(`getBudgetStatus failed: ${error.message}`);
+
+  const budgets: BudgetStatusOut[] = [];
+  for (const b of (data as { category: string; limit_cents: number }[] | null) ?? []) {
+    budgets.push(await statusFor(supabase, userId, b, exclusions, month));
+  }
+  return { budgets };
+}
+
+export async function setBudget(
+  supabase: SupabaseClient,
+  userId: string,
+  input: SetBudgetIn,
+  exclusions: Exclusion[],
+): Promise<BudgetStatusOut> {
+  const limit_cents = Math.round(input.limitAmount * 100);
+  const { error } = await supabase
+    .from("budgets")
+    .upsert(
+      { user_id: userId, category: input.category, period_type: input.period, limit_cents },
+      { onConflict: "user_id,category,period_type" },
+    );
+  if (error) throw new Error(`setBudget failed: ${error.message}`);
+
+  const month = await latestDataMonth(supabase, userId);
+  return statusFor(supabase, userId, { category: input.category, limit_cents }, exclusions, month);
+}
+
+// ---- user memory (PRD-B3) -------------------------------------------------
+export async function saveMemory(
+  supabase: SupabaseClient,
+  userId: string,
+  input: SaveMemoryIn,
+  confirmation: string,
+): Promise<SaveMemoryOut> {
+  const { rule, kind } = input;
+  const text = rule.type === "free_text" ? rule.text : null;
+  const { type, ...rest } = rule;
+  const params = rule.type === "free_text" ? {} : rest;
+
+  const { error } = await supabase
+    .from("user_memory")
+    .insert({ user_id: userId, kind, type, params, text });
+  if (error) throw new Error(`saveMemory failed: ${error.message}`);
+
+  return { ok: true, summary: confirmation };
 }
 
 /** Compact recent-rollup context for the reasoning-tier synthesis tools. */

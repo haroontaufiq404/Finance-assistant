@@ -6,6 +6,7 @@ import { SYNTHESIS_SYSTEM } from "./prompts";
 import * as Q from "@/lib/db/queries";
 import * as C from "@/lib/contracts";
 import { formatCents } from "@/lib/utils";
+import { loadMemory, summarizeRule } from "@/lib/memory/rules";
 
 /**
  * Typed tool definitions (PRD-B1, SPEC §5.1). Each tool = a Zod input schema
@@ -125,6 +126,41 @@ export function buildToolSet(ctx: { userId: string; today: string }): ToolSet {
           suggestions = [];
         }
         return { kind: "cutbacks" as const, suggestions };
+      },
+    }),
+
+    getBudgetStatus: tool({
+      description:
+        "Budget status for one category or all budgets: limit vs spend, % used, remaining. Applies the user's exclusion rules. Use for 'how am I doing on my budget'.",
+      inputSchema: C.GetBudgetStatusInput,
+      execute: async (input) => {
+        const supabase = await getServerClient();
+        const mem = await loadMemory(userId);
+        const out = await Q.getBudgetStatus(supabase, userId, input, mem.budgetExclusions);
+        return { kind: "budget" as const, ...out };
+      },
+    }),
+
+    setBudget: tool({
+      description:
+        "Create or update a monthly budget for a category (or '__all__' for a total budget). limitAmount is in dollars. Returns the updated budget status.",
+      inputSchema: C.SetBudgetInput,
+      execute: async (input) => {
+        const supabase = await getServerClient();
+        const mem = await loadMemory(userId);
+        const status = await Q.setBudget(supabase, userId, input, mem.budgetExclusions);
+        return { kind: "budget" as const, budgets: [status] };
+      },
+    }),
+
+    saveMemory: tool({
+      description:
+        "Persist a user rule or fact to remember and apply later. Use when the user says to remember something, 'I get paid on the Nth', or 'don't count X in my Y budget' (exclude_category_from_budget with exclude=X, from=Y; use from='__all__' for an overall budget).",
+      inputSchema: C.SaveMemoryInput,
+      execute: async (input) => {
+        const supabase = await getServerClient();
+        const out = await Q.saveMemory(supabase, userId, input, summarizeRule(input.rule));
+        return out; // {ok, summary} — narrated by the model, no card
       },
     }),
 
