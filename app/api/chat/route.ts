@@ -2,6 +2,7 @@ import { type UIMessage } from "ai";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/db/client";
 import { streamAssistantReply } from "@/lib/agent/orchestrator";
+import { MAX_MESSAGE_CHARS } from "@/lib/limits";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -25,6 +26,18 @@ export async function POST(req: Request) {
 
   if (!body.messages || body.messages.length === 0) {
     return NextResponse.json({ error: "no messages" }, { status: 400 });
+  }
+
+  // Cap the latest user message length to bound model context/cost.
+  const lastUser = [...body.messages].reverse().find((m) => m.role === "user");
+  const lastUserLen = (lastUser?.parts ?? [])
+    .filter((p): p is { type: "text"; text: string } => p.type === "text")
+    .reduce((n, p) => n + p.text.length, 0);
+  if (lastUserLen > MAX_MESSAGE_CHARS) {
+    return NextResponse.json(
+      { error: `message exceeds the ${MAX_MESSAGE_CHARS}-character limit` },
+      { status: 400 },
+    );
   }
 
   const { result } = await streamAssistantReply({

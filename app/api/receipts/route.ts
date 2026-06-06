@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getCurrentUser, getServerClient } from "@/lib/db/client";
 import { visionModel } from "@/lib/agent/models";
 import { coerceDate, type ReceiptExtraction, type ReceiptDraft } from "@/lib/contracts";
+import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES, formatBytes } from "@/lib/limits";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -36,6 +37,18 @@ export async function POST(request: NextRequest) {
   const file = form?.get("file");
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "no image provided" }, { status: 400 });
+  }
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return NextResponse.json(
+      { error: "unsupported image type — use PNG, JPEG, or WebP" },
+      { status: 415 },
+    );
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return NextResponse.json(
+      { error: `image exceeds the ${formatBytes(MAX_IMAGE_BYTES)} limit` },
+      { status: 413 },
+    );
   }
 
   const supabase = await getServerClient();

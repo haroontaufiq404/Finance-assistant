@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Upload } from "lucide-react";
 import type { IngestSummary } from "@/lib/contracts";
+import { MAX_CSV_BYTES, formatBytes } from "@/lib/limits";
 import { cn } from "@/lib/utils";
 
 const EXAMPLES = [
@@ -28,6 +29,10 @@ export function Onboarding({
   const [dragOver, setDragOver] = useState(false);
 
   async function upload(file: File) {
+    if (file.size > MAX_CSV_BYTES) {
+      setError(`That file is too large (max ${formatBytes(MAX_CSV_BYTES)}).`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {

@@ -1,0 +1,38 @@
+Date,Description,Amount,Category
+03/01/2026,Acme Payroll,4200.00,income
+03/02/2026,Sunrise Apartments Rent,-1800.00,rent
+03/04/2026,Whole Foods Market,-92.40,groceries
+03/05/2026,Netflix,-15.99,subscriptions
+03/06/2026,Spotify,-11.99,subscriptions
+03/09/2026,Trader Joe's,-64.10,groceries
+03/12/2026,Blue Bottle Coffee,-6.75,dining
+03/16/2026,Shell,-48.20,transport
+03/22/2026,Chipotle,-13.40,dining
+04/01/2026,Acme Payroll,4200.00,income
+04/02/2026,Sunrise Apartments Rent,-1800.00,rent
+04/05/2026,Netflix,-15.99,subscriptions
+04/06/2026,Spotify,-11.99,subscriptions
+04/08/2026,Whole Foods Market,-88.15,groceries
+04/14/2026,Uber,-22.30,transport
+04/19/2026,Olive Garden,-54.20,dining
+04/25/2026,Amazon,-39.99,shopping
+05/01/2026,Acme Payroll,4200.00,income
+05/02/2026,Sunrise Apartments Rent,-1800.00,rent
+05/05/2026,Netflix,-15.99,subscriptions
+05/06/2026,Spotify,-11.99,subscriptions
+05/10/2026,Whole Foods Market,-103.75,groceries
+05/13/2026,Trader Joe's,-71.20,groceries
+05/17/2026,Blue Bottle Coffee,-7.25,dining
+05/21/2026,Shell,-51.60,transport
+05/24/2026,Chipotle,-14.10,dining
+06/01/2026,Acme Payroll,"$4,200.00",income
+06/02/2026,Sunrise Apartments Rent,-1800.00,rent
+06/03/2026,Netflix,-15.99,subscriptions
+06/03/2026,Spotify,-11.99,subscriptions
+06/04/2026,Whole Foods Market,-96.30,groceries
+06/05/2026,Best Buy,-1299.99,electronics
+06/05/2026,Olive Garden,($120.50),dining
+06/06/2026,Chipotle,-15.80,dining
+06/04/2026,Whole Foods Market,-96.30,groceries
+06/05/2026,Mystery Charge,,uncategorized
+this is a junk row that should be quarantined
