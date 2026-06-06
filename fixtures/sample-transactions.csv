@@ -1,0 +1,27 @@
+Date,Description,Amount,Category
+04/01/2024,ACME Payroll,3200.00,income
+04/02/2024,Rent LLC,-1500.00,rent
+04/03/2024,Whole Foods Market #221,-84.23,groceries
+04/05/2024,Netflix,-15.99,subscriptions
+04/06/2024,Spotify,-9.99,subscriptions
+04/08/2024,Shell Gas,-46.10,transport
+04/12/2024,SQ *Blue Bottle Coffee,-6.50,dining
+04/15/2024,Trader Joe's,-112.40,groceries
+04/20/2024,Amazon,-39.99,shopping
+05/01/2024,ACME Payroll,3200.00,income
+05/02/2024,Rent LLC,-1500.00,rent
+05/05/2024,Netflix,-15.99,subscriptions
+05/06/2024,Spotify,-9.99,subscriptions
+05/10/2024,Whole Foods Market #221,-95.10,groceries
+05/14/2024,Uber,-23.75,transport
+05/18/2024,Olive Garden,($54.20),dining
+05/25/2024,Costco,"-1,204.55",shopping
+06/01/2024,ACME Payroll,"3,200.00",income
+06/02/2024,Rent LLC,-1500.00,rent
+06/05/2024,Netflix,-15.99,subscriptions
+06/06/2024,Spotify,-9.99,subscriptions
+06/09/2024,Whole Foods Market #221,-88.00,groceries
+06/15/2024,Best Buy,-1199.99,electronics
+04/03/2024,Whole Foods Market #221,-84.23,groceries
+06/20/2024,Mystery Charge XYZ,,uncategorized
+this is a junk row not a transaction
