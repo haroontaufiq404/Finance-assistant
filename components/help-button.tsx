@@ -45,7 +45,7 @@ export function HelpButton() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="animate-card-in max-h-[85vh] w-full max-w-lg overflow-y-auto rounded border border-border bg-surface p-6 shadow-lg"
+            className="scroll-area animate-card-in max-h-[85vh] w-full max-w-lg overflow-y-auto rounded border border-border bg-surface p-6 shadow-lg"
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-xl font-semibold">How to use Finance Assistant</h2>

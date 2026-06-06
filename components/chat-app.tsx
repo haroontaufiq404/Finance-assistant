@@ -101,7 +101,7 @@ export function ChatApp({
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex-1 overflow-y-auto">
+        <div className="scroll-area flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[760px] px-4 py-8">
             {importSummary && (
               <div className="mb-6">
@@ -119,6 +119,9 @@ export function ChatApp({
               />
             ) : (
               <div className="space-y-6">
+                {messages.length === 0 && drafts.length === 0 && !busy && (
+                  <EmptyChat onExample={send} />
+                )}
                 {messages.map((m) => (
                   <MessageTurn key={m.id} message={m} />
                 ))}
@@ -219,6 +222,36 @@ export function ChatApp({
       </div>
 
       <HelpButton />
+    </div>
+  );
+}
+
+const EXAMPLE_PROMPTS = [
+  "How much did I spend on groceries last month?",
+  "Am I spending more than usual this month?",
+  "Find my subscriptions",
+  "Any unusual activity?",
+];
+
+/** Shown when signed in with data but no active conversation (e.g. after refresh). */
+function EmptyChat({ onExample }: { onExample: (text: string) => void }) {
+  return (
+    <div className="mx-auto flex max-w-md flex-col items-center py-16 text-center">
+      <h2 className="font-display text-2xl font-semibold">Ask me anything.</h2>
+      <p className="mt-2 text-text-muted">
+        Your data&apos;s loaded. Ask about spending, budgets, subscriptions, or unusual activity.
+      </p>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        {EXAMPLE_PROMPTS.map((ex) => (
+          <button
+            key={ex}
+            onClick={() => onExample(ex)}
+            className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs text-text-muted transition-colors hover:border-accent hover:text-text"
+          >
+            {ex}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
