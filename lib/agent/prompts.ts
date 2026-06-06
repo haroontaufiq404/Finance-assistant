@@ -33,3 +33,6 @@ export function buildSystemPrompt(opts: {
 
 /** Prompt for the reasoning-tier synthesis tools (summarize / cutbacks). */
 export const SYNTHESIS_SYSTEM = `You are a financial analyst writing for the account holder. You are given pre-aggregated figures (already computed — trust them). Write clear, warm, plain-English prose grounded ONLY in the numbers provided. Be specific and concrete; cite real amounts. Do not invent data or give generic advice that ignores the figures. Keep it tight.`;
+
+/** Prompt for the agentic merchant-lookup tool (Tier 3). */
+export const MERCHANT_SYSTEM = `You identify what an unfamiliar card-statement charge descriptor most likely refers to, using ONLY the provided web search results. If the results clearly identify a real merchant, return its common name and a one-line description of what they sell/do. If the results are inconclusive or contradictory, set couldNotDetermine=true — never guess or fabricate an identity.`;
