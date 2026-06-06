@@ -2,7 +2,7 @@
 
 An AI-driven, multi-user financial companion. Users sign in, bring in their transaction history, and talk to an assistant in plain language about their money — including by uploading a photo of a receipt.
 
-**Live demo:** `TODO: <vercel-url>` · **Repo:** `TODO: <github-url>`
+**Repo:** https://github.com/HaroonTaufiq/Finance-assistant · **Live demo:** _deploy to Vercel and drop the URL here (see “Running it locally” / deployment)._
 
 > This README is also the design note. It explains what was built, the decisions behind it, and what was deliberately left out under the 6-hour, single-sitting constraint.
 
@@ -19,7 +19,9 @@ The LLM is a *router and orchestrator* over deterministic tools. Math happens in
 - **Two planes.** A *write path* (offline: ingest → clean → precompute) and a *read path* (online: per-request, reads small pre-aggregated tables). They're separated in the code, not interleaved.
 - **Tiered effort.** Requests route to the cheapest sufficient tool. A balance lookup is a SQL read; an unknown-merchant lookup earns a heavier agentic model with web access. Effort scales with the task, never uniformly.
 
-`TODO: drop the two architecture diagrams (data planes + routing tiers) here as images.`
+The two planes and the routing tiers, in prose and the diagram below: the write
+path runs once at ingest and fills small precomputed tables; the read path is a
+cheap-model tool loop over those tables.
 
 ```
             WRITE PATH (offline, async)                 READ PATH (online, per request)
@@ -41,20 +43,23 @@ The LLM is a *router and orchestrator* over deterministic tools. Math happens in
 
 ## What's built
 
-Mapping the product capabilities to what's actually implemented. `TODO: update each status to reflect reality before submitting — be honest; a narrow slice that works beats broad and broken.`
+Mapping the product capabilities to what's implemented. All ten are built and the
+project type-checks, builds, and passes its unit tests; **end-to-end runtime
+verification requires live Supabase credentials + model API keys** (see “Running
+it locally”). Status reflects code-complete, not a claim of a hosted demo.
 
 | # | Capability | Status | How it works |
 |---|---|---|---|
-| 1 | Answer spending questions | `TODO ✅/🟡/⛔` | `getSpending` / `getTransactions` — parameterized SQL, no raw rows in context |
-| 2 | Read a receipt from a photo | `TODO` | Vision extraction → Zod validation → **confidence-gated confirm step** |
-| 3 | Surface recurring subscriptions | `TODO` | Detected at ingest, stored in `subscriptions`, read on demand |
-| 4 | Flag unusual activity | `TODO` | z-score / new-merchant / category-spike, precomputed into `anomalies` |
-| 5 | Compare across time | `TODO` | `getTrend` over monthly `rollups` — the answer to "reason over long history" |
-| 6 | Track a budget | `TODO` | `budgets` + `getBudgetStatus`, warns near/over limit |
-| 7 | Look up unfamiliar charges | `TODO` | `lookupMerchant` — agentic loop with web search |
-| 8 | Summarise finances | `TODO` | `summarizeFinances` over rollups, reasoning-tier model |
-| 9 | Suggest where to cut back | `TODO` | `suggestCutbacks` over rollups + subscriptions |
-| 10 | Remember user context | `TODO` | `user_memory` — deterministic rules reconfigure the query layer |
+| 1 | Answer spending questions | ✅ | `getSpending` (rollups) / `getTransactions` — parameterized, bounded, no raw rows in context |
+| 2 | Read a receipt from a photo | ✅ | Vision extraction → Zod validation → **confidence-gated confirm step** |
+| 3 | Surface recurring subscriptions | ✅ | Cadence detection at ingest, stored in `subscriptions`, read on demand |
+| 4 | Flag unusual activity | ✅ | z-score / new-merchant / category-spike, precomputed into `anomalies` |
+| 5 | Compare across time | ✅ | `getTrend` over monthly `rollups` — the answer to "reason over long history" |
+| 6 | Track a budget | ✅ | `budgets` + `getBudgetStatus`, warns near/over limit, applies exclusions |
+| 7 | Look up unfamiliar charges | ✅ | `lookupMerchant` — agentic loop with Tavily web search |
+| 8 | Summarise finances | ✅ | `summarizeFinances` over rollups, reasoning-tier model |
+| 9 | Suggest where to cut back | ✅ | `suggestCutbacks` over rollups + subscriptions |
+| 10 | Remember user context | ✅ | `user_memory` — deterministic rules reconfigure the budget query layer |
 
 ---
 
@@ -94,8 +99,11 @@ The architecture is the cost story. The common case — a spending question — 
 
 - A single base currency per user; amounts are stored as integer cents (no float drift). Multi-currency FX is out of scope.
 - The provided sample CSV / mock endpoint stands in for a real bank connection.
-- "Months" are the primary reporting period; weekly/daily rollups are supported by the schema but not all surfaced.
-- `TODO: add any other assumptions you made while building.`
+- "Months" are the primary reporting period; weekly/daily rollups are supported by the schema but not surfaced.
+- **Model tiers:** router/vision default to Gemini (Flash-Lite / Flash) and reasoning to Claude Sonnet — the cheapest-capable mix; all three are env-swappable (`ROUTER_MODEL` / `VISION_MODEL` / `REASONING_MODEL`).
+- **Budget exclusions** apply to the budget whose category matches the rule's `from` (use `from='__all__'` for an overall budget); budgets evaluate against the *latest month with data*, so the historical sample CSV still tracks sensibly.
+- **CSV headers** are auto-detected from common synonyms (date/amount or debit+credit, description/merchant/category); ambiguous `MM/DD` vs `DD/MM` dates assume US `MM/DD` unless the first field exceeds 12.
+- The sample CSV (`fixtures/sample-transactions.csv`) is dated 2024; for the freshest demo of "this month" questions, upload data with recent dates.
 
 ---
 
@@ -106,17 +114,26 @@ Scoping is part of the exercise; here's where the 6 hours did and didn't go.
 - **Real bank integration** — uses the mock/CSV only.
 - **Production job queue** — batch jobs run synchronously at ingest. In production they'd move to a dedicated worker (Inngest / Trigger.dev / `pg_cron`), because serverless functions are hostile to long-running work. The two-plane design makes that a clean extraction, not a rewrite.
 - **ML-grade anomaly detection** — ships a z-score / rolling-baseline heuristic. The upgrade path (per-category seasonal models, embeddings for merchant clustering) is named but not built.
-- **Multi-conversation management, dark-mode toggle, exhaustive tests** — simplified or omitted; a few unit tests cover ingest cleaning and dedup as the high-signal cases.
-- `TODO: list anything else you stubbed, and one line on why.`
+- **Multi-conversation management, dark-mode toggle, exhaustive tests** — simplified or omitted; unit tests cover the high-signal ingest cleaning + dedup + coercion paths (22 tests). Dark-mode tokens are defined but the toggle isn't wired.
+- **Categorizer model fallthrough** — categorization is rules-first (merchant/keyword); the cheap-model batch pass for leftovers is a documented hook, not wired (rows simply stay `uncategorized`).
+- **Conversation persistence** — each turn is stored, but multi-conversation threading UI is out of scope (one active conversation).
+- **Sidebar "quick facts"** — static copy rather than live glances, per the UI scope.
 
 ---
 
 ## Challenges
 
-`TODO: write 2–4 honest paragraphs on what was actually hard and how you handled it. Likely candidates, fill in the ones that happened:`
-- *Getting Supabase's server client bound to the user JWT so RLS resolves `auth.uid()` correctly in the App Router — the policies are correct only if the session binding is.*
-- *Confidence gating on receipt extraction: deciding the threshold and what "low confidence" should fall back to.*
-- *Keeping the tool-calling loop bounded so the cheap router model doesn't spin on multi-step requests.*
+A few things that took real thought:
+
+- **Contracts-first to keep parallel work aligned.** The build was decomposed into modular PRDs (see `docs/prd/`) and shipped as one PR each. The highest-leverage decision was freezing all cross-module shapes in `lib/contracts` *before* writing features, so the ingest, agent, UI, and receipt streams bind to one schema set and can't drift. Tool outputs double as the UI card payloads (`ResultCardData`), which removed an entire mapping layer.
+
+- **Supabase SSR + RLS binding.** The policies are only correct if the server client is bound to the user's JWT via cookies. Following the current `@supabase/ssr` pattern (`getAll`/`setAll`, `getUser()` not `getSession()` in server code, and a middleware that does nothing between client creation and `getUser`) is what makes `auth.uid()` resolve — getting it wrong fails silently.
+
+- **Historical sample data vs "this month".** The sample CSV is from 2024 but the app runs in 2026, so budgets/“this month” anchored to the real calendar would read empty. Budgets anchor to the *latest month with data* instead, so the demo is meaningful without doctoring dates.
+
+- **Bounded, precomputed reads.** Spending/trend tools read the monthly `rollups` table, never raw rows, and `getTransactions` is capped at 50 — so the model context stays tiny and cost/latency stay flat as data grows. The orchestrator loop is hard-capped (`stepCountIs`) so the cheap router can't spin on multi-step requests.
+
+- **Receipt confidence gate.** Deciding that a receipt is *always* a draft requiring one explicit confirm (never auto-recorded), with low-confidence/missing fields flagged and a near-duplicate check against existing bank rows to avoid double-counting.
 
 ---
 
@@ -135,9 +152,11 @@ cp .env.example .env.local
 #   and a Tavily (or Exa) key for merchant lookup.
 
 # 3. database
-#   Open the Supabase SQL editor and run db/schema.sql in full.
+#   Open the Supabase SQL editor and run schema.sql (repo root) in full.
 #   It creates all tables, RLS policies, the profile trigger,
 #   and the private 'receipts' storage bucket.
+#   Then disable "Confirm email" under Auth settings for the fastest demo
+#   (or use the /auth/callback flow that's already wired).
 
 # 4. run
 pnpm dev
@@ -156,13 +175,19 @@ See `.env.example`. Model selection is per-tier via `ROUTER_MODEL`, `VISION_MODE
 ## Project structure
 
 ```
-/app          Next.js routes — /chat (app), /api/chat, /api/ingest, /api/receipts
-/lib/agent    orchestrator, typed tools, model resolution, prompts
-/lib/ingest   CSV parse, validation, dedup, pipeline
-/lib/batch    rollups, subscription detection, anomaly scoring, categorization
-/lib/db       Supabase client + parameterized queries (no text-to-SQL)
-/components   chat thread, composer, and the result cards
-/db           schema.sql
+/app           Next.js routes — /chat, /login, /api/{chat,ingest,receipts,receipts/confirm}, /auth/*
+/lib/agent     orchestrator, typed tools, model resolution, prompts
+/lib/ingest    CSV parse, validation, dedup, pipeline
+/lib/batch     rollups, subscription detection, anomaly scoring, categorization
+/lib/db        Supabase client (single getCurrentUser touchpoint) + parameterized queries
+/lib/contracts shared Zod schemas + inferred types (the cross-module source of truth)
+/lib/memory    deterministic user rules
+/lib/search    web-search adapter (Tavily)
+/components    chat shell, result cards, receipt draft, onboarding, import summary
+/types         shared TS types (mirror Zod)
+schema.sql     database schema + RLS + storage bucket (run in Supabase)
+fixtures/      sample-transactions.csv
+docs/prd/      modular PRD decomposition (how the build was scoped)
 ```
 
 ---
