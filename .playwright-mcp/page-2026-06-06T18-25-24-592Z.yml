@@ -1,0 +1,22 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]: Finance Assistant
+      - generic [ref=e5]: Quick facts
+      - paragraph [ref=e6]: Ask about spending, budgets, subscriptions, or unusual activity.
+      - generic [ref=e7]:
+        - generic [ref=e8]: haroonrevup@gmail.com
+        - button "Sign out" [ref=e10] [cursor=pointer]
+    - generic [ref=e11]:
+      - generic [ref=e14]:
+        - generic [ref=e40]: Where can I cut back?
+        - generic [ref=e42]: Looking that up…
+      - generic [ref=e25]:
+        - button "Attach receipt" [ref=e26] [cursor=pointer]:
+          - img [ref=e27]
+        - textbox "Ask about your money…" [active] [ref=e30]
+        - button "Stop" [ref=e47] [cursor=pointer]:
+          - img [ref=e48]
+    - button "Help" [ref=e34] [cursor=pointer]:
+      - img [ref=e35]
+  - alert [ref=e38]

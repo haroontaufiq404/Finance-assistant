@@ -1,0 +1,44 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]: Finance Assistant
+      - generic [ref=e5]: Quick facts
+      - paragraph [ref=e6]: Ask about spending, budgets, subscriptions, or unusual activity.
+      - generic [ref=e7]:
+        - generic [ref=e8]: haroonrevup@gmail.com
+        - button "Sign out" [ref=e10] [cursor=pointer]
+    - generic [ref=e11]:
+      - generic [ref=e14]:
+        - generic [ref=e40]: Where can I cut back?
+        - generic [ref=e50]:
+          - generic [ref=e51]: Where you could cut back
+          - list [ref=e52]:
+            - listitem [ref=e53]:
+              - generic [ref=e54]:
+                - generic [ref=e55]: Drop or pause one streaming service
+                - generic [ref=e56]: save $11.99/mo
+              - paragraph [ref=e57]: You're paying Netflix $15.99/mo and Spotify (OTIFY) $11.99/mo — $27.98 total — consider cutting one you use less.
+            - listitem [ref=e58]:
+              - generic [ref=e59]:
+                - generic [ref=e60]: Rein in dining out
+                - generic [ref=e61]: save $103.97/mo
+              - paragraph [ref=e62]: Dining spend jumped from $21.35 in May to $136.30 in June — bringing it back to your March–May average of ~$32/mo would save roughly $104.
+            - listitem [ref=e63]:
+              - generic [ref=e64]:
+                - generic [ref=e65]: Trim your Whole Foods habit
+                - generic [ref=e66]: save $23.79/mo
+              - paragraph [ref=e67]: Whole Foods alone averages $95.15/mo per your subscription pattern; shifting some staples to a cheaper grocer could realistically cut that bill by 20–30%, saving around $19–$29/mo.
+            - listitem [ref=e68]:
+              - generic [ref=e69]:
+                - generic [ref=e70]: Avoid impulse electronics purchases
+                - generic [ref=e71]: save $1,299.99/mo
+              - paragraph [ref=e72]: You spent $1,299.99 on electronics in June alone — a category that was $0 in the prior three months. Setting a 30-day pause rule on big-ticket tech buys prevents this spike from recurring.
+      - generic [ref=e25]:
+        - button "Attach receipt" [ref=e26] [cursor=pointer]:
+          - img [ref=e27]
+        - textbox "Ask about your money…" [active] [ref=e30]
+        - button "Send" [disabled] [ref=e73]:
+          - img [ref=e74]
+    - button "Help" [ref=e34] [cursor=pointer]:
+      - img [ref=e35]
+  - alert [ref=e38]

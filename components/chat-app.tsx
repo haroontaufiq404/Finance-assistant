@@ -258,6 +258,55 @@ function EmptyChat({ onExample }: { onExample: (text: string) => void }) {
 
 type UIMsg = ReturnType<typeof useChat>["messages"][number];
 
+// Effort tiers (SPEC §1): which model/level handled the turn. Derived from the
+// tools the router chose, so it visibly shows when heavy reasoning was used vs a
+// cheap SQL read — no backend change needed.
+const TOOL_TIER: Record<string, number> = {
+  getSpending: 0,
+  getTransactions: 0,
+  getBudgetStatus: 0,
+  setBudget: 0,
+  saveMemory: 0,
+  askClarification: 0,
+  getTrend: 1,
+  getSubscriptions: 1,
+  getAnomalies: 1,
+  lookupMerchant: 3,
+  summarizeFinances: 4,
+  suggestCutbacks: 4,
+};
+
+const TIER_META: Record<number, { label: string; dot: string }> = {
+  0: { label: "Instant · SQL", dot: "bg-text-faint" },
+  1: { label: "Fast · precomputed", dot: "bg-text-muted" },
+  3: { label: "Agentic · web + reasoning", dot: "bg-warn" },
+  4: { label: "Reasoned · Claude", dot: "bg-accent" },
+};
+
+function effortTier(message: UIMsg): number | null {
+  let max: number | null = null;
+  for (const part of message.parts) {
+    let name: string | undefined;
+    if (part.type.startsWith("tool-")) name = part.type.slice(5);
+    else if (part.type === "dynamic-tool") name = (part as { toolName?: string }).toolName;
+    if (name && name in TOOL_TIER) {
+      const t = TOOL_TIER[name]!;
+      if (max === null || t > max) max = t;
+    }
+  }
+  return max;
+}
+
+function EffortBadge({ tier }: { tier: number }) {
+  const meta = TIER_META[tier] ?? TIER_META[1]!;
+  return (
+    <div className="flex items-center gap-1.5 pt-0.5 text-[11px] text-text-faint" title="How much effort this answer took">
+      <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
+      {meta.label}
+    </div>
+  );
+}
+
 function MessageTurn({ message }: { message: UIMsg }) {
   const isUser = message.role === "user";
 
@@ -272,6 +321,8 @@ function MessageTurn({ message }: { message: UIMsg }) {
       </div>
     );
   }
+
+  const tier = effortTier(message);
 
   return (
     <div className="space-y-2">
@@ -293,6 +344,7 @@ function MessageTurn({ message }: { message: UIMsg }) {
         }
         return null;
       })}
+      {tier !== null && <EffortBadge tier={tier} />}
     </div>
   );
 }
