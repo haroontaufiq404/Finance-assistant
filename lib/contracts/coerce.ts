@@ -81,7 +81,7 @@ export function coerceDate(raw: string | null | undefined): string | null {
     return Number.isNaN(d.getTime()) ? null : toYmd(d);
   }
 
-  let [, a, b, c] = m as unknown as [string, string, string, string];
+  const [, a, b, c] = m as unknown as [string, string, string, string];
   let year: number, month: number, day: number;
 
   if (a.length === 4) {
