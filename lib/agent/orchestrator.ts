@@ -12,6 +12,14 @@ import { buildSystemPrompt } from "./prompts";
 import { loadMemory } from "@/lib/memory/rules";
 
 /**
+ * Only the most recent turns are sent to the router each request. Older turns
+ * (and their tool-result aggregates) are dropped to keep context — and therefore
+ * cost/latency — flat as a conversation grows. Whole UIMessages are kept, so
+ * tool-call/result pairs are never split.
+ */
+const MAX_HISTORY_MESSAGES = 5;
+
+/**
  * The read-path entrypoint (PRD-B1, SPEC §5). Runs a single AI SDK tool-calling
  * loop on the cheap ROUTER_MODEL, capped at ~4 tool steps. The model routes to
  * typed tools; raw rows never enter its context. Persists user + assistant
@@ -52,10 +60,12 @@ export async function streamAssistantReply(args: {
   const today = new Date().toISOString().slice(0, 10);
   const system = buildSystemPrompt({ today, memorySummary: memory.promptSummary });
 
+  const recentMessages = messages.slice(-MAX_HISTORY_MESSAGES);
+
   const result = streamText({
     model: routerModel(),
     system,
-    messages: convertToModelMessages(messages),
+    messages: convertToModelMessages(recentMessages),
     tools: buildToolSet({ userId, today }),
     stopWhen: stepCountIs(5), // <= ~4 tool steps, then synthesize (SPEC §5)
     onFinish: async ({ text, toolCalls }) => {
