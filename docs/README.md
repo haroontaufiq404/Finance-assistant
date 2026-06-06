@@ -152,7 +152,7 @@ cp .env.example .env.local
 #   and a Tavily (or Exa) key for merchant lookup.
 
 # 3. database
-#   Open the Supabase SQL editor and run schema.sql (repo root) in full.
+#   Open the Supabase SQL editor and run docs/schema.sql in full.
 #   It creates all tables, RLS policies, the profile trigger,
 #   and the private 'receipts' storage bucket.
 #   Then disable "Confirm email" under Auth settings for the fastest demo
@@ -185,8 +185,8 @@ See `.env.example`. Model selection is per-tier via `ROUTER_MODEL`, `VISION_MODE
 /lib/search    web-search adapter (Tavily)
 /components    chat shell, result cards, receipt draft, onboarding, import summary
 /types         shared TS types (mirror Zod)
-schema.sql     database schema + RLS + storage bucket (run in Supabase)
 fixtures/      sample-transactions.csv
+docs/          design docs — this README, SPEC.md, UI_SPEC.md, schema.sql, the brief
 docs/prd/      modular PRD decomposition (how the build was scoped)
 ```
 

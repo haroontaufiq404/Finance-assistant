@@ -9,8 +9,8 @@ prove it works*.
 respect "Scope — Explicitly Out", verify against its checklist, commit at its PR boundary. Don't
 re-read the whole spec — each PRD carries the context it needs via its Dependencies + Reuse pointers.
 
-Source docs: [`SPEC.md`](../../SPEC.md) · [`UI_SPEC.md`](../../UI_SPEC.md) ·
-[`README.md`](../../README.md) (design note) · [`schema.sql`](../../schema.sql) (already complete).
+Source docs: [`SPEC.md`](../SPEC.md) · [`UI_SPEC.md`](../UI_SPEC.md) ·
+[`README.md`](../README.md) (design note) · [`schema.sql`](../schema.sql) (already complete).
 
 ---
 
